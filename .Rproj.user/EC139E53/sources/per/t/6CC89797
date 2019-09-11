@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1568228846224.000,
+    "dirty" : false,
+    "encoding" : "ISO8859-1",
+    "folds" : "",
+    "hash" : "3979580181",
+    "id" : "6CC89797",
+    "lastKnownWriteTime" : 1568230015,
+    "last_content_update" : 1568230015768,
+    "path" : "C:/Users/Qiao/Desktop/Sus/Test_Script1.Rmd",
+    "project_path" : "Test_Script1.Rmd",
+    "properties" : {
+        "chunk_output_type" : "inline",
+        "cursorPosition" : "7,6",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
