@@ -1,0 +1,75 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+install.packages("shinythemes")
+install.packages("shiny")
+install.packages("leaflet")
+install.packages("leaflet.extras")
+install.packages("geojsonio")
+install.packages("plotly")
+install.packages("RColorBrewer")
+install.packages("viridis")
+install.packages("reshape2")
+install.packages("rasterVis")
+install.packages("sjPlot")
+install.packages("rgdal")
+install.packages("ggmap")
+install.packages("viridis")
+
+```
+
+```{r}
+#eval=FALSE will not run 
+#include=FALSE will not show on website
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap)    
+```
+
+```{r}
+library(shinythemes)
+library(shiny)
+library(leaflet)
+library(leaflet.extras)
+library(geojsonio)
+library(plotly)
+library(RColorBrewer)
+library(viridis)
+library(ggplot2)
+library(reshape2)
+library(raster)
+library(rasterVis)
+library(sjPlot)
+library(rgdal)
+library(ggmap)
+library(viridis)
+library(sf)
+```
+#Load Census Data "TractPolygonCompressed.json"
+```{r}
+#CT <- geojsonio::geojson_read("Data/TractPolygonsCompressed.json", what="sp")
+#head(CT)
+
+# subselect Montreal Area
+#CT <- CT[CT@data$CMANAME == "Montreal",]
+#save(CT, file= "Data/CT.Rdata")
+```
+
+```{r}
+#zones_data <- geojsonio::geojson_read("Data/TractTractLinesCompressed.json", what="sp")
+#zones_data <- zones_data[zones_data@data$Origin == "Montreal",]
+#save(zones_data,file="Data/zones_data.Rdata")
+```
+
+```{r}
+load("Data/zones_data.Rdata")
+load("Data/CT.Rdata")
+```
+
