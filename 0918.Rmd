@@ -63,13 +63,37 @@ library(sf)
 ```
 
 ```{r}
-#zones_data <- geojsonio::geojson_read("Data/TractTractLinesCompressed.json", what="sp")
-#zones_data <- zones_data[zones_data@data$Origin == "Montreal",]
-#save(zones_data,file="Data/zones_data.Rdata")
+zones_data <- geojsonio::geojson_read("Data/TractTractLinesCompressed.json", what="sp")
+save(zones_data,file="Data/zones_data.Rdata")
+zones_data[1:10,]
 ```
 
 ```{r}
 load("Data/zones_data.Rdata")
 load("Data/CT.Rdata")
+
+```
+
+```{r}
+install.packages("h5")
+library(h5)
+dater <- h5file(name='Sus_data.h5','a')
+list.datasets(dater,recursive = TRUE)
+```
+```{r}
+dater["testgroup/testset"] <- matrix(1:9,nrow=3)
+dater["testgroup/testset2"] <- matrix(1:33,nrow=3)
+
+```
+
+```{r}
+dater['testgroup']
+h5unlink(dater,"testgroup/testset") #delete dataframe
+```
+
+```{r}
+load("Data/CT.Rdata")
+names(CT)
+desire_rail = top_n(desire_lines, n = 3, wt = train)
 ```
 
