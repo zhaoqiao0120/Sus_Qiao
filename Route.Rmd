@@ -1,0 +1,45 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+#Car Route
+```{r}
+load("Data/car_1_14000.Rdata")
+load("Data/car_14001_28000.Rdata")
+load("Data/car_28001_42000.Rdata")
+load("Data/car_42001_56000.Rdata")
+load("Data/car_56001.Rdata")
+
+car <- rbind(car_1_14000, car_14001_28000, car_28001_42000, car_42001_56000, car_56001)
+save(Car,file="Data/car_routes.Rdata")
+
+```
+
+#Cycling Route
+```{r}
+load("Data/cycling_1_14000.Rdata")
+load("Data/cycling_14001_28000.Rdata")
+load("Data/cycling_28001_42000.Rdata")
+load("Data/cycling_42001_56000.Rdata")
+load("Data/cycling_56001.Rdata")
+
+flow_14939_14950 <- flow_gcs[14939:14950,]
+cycling_14939_14950 = line2route(l = flow_14939_14950, route_cyclestreet)
+cycling_14939_14950$id <- as.character(as.numeric(cycling_14939_14950$id)+14938)
+
+cycling_14001_28000 <- cycling_14001_28000[is.na(cycling_14001_28000$error),]
+
+cycling <- rbind(cycling_1_14000, cycling_14001_28000, cycling_14939_14950, cycling_28001_42000, cycling_42001_56000, cycling_56001)
+save(cycling,file="Data/cycling_routes.Rdata")
+
+error <- cycling[!is.na(cycling$error),]
+```
+```{r}
+load("Data/cycling_routes.Rdata")
+load("Data/car_routes.Rdata")
+
+```
+
+

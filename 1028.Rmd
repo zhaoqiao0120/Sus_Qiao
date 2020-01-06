@@ -1,0 +1,262 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+    number_sections: true
+bibliography: Sus.xml
+---
+
+
+
+## Loading Packages
+```{r, e}
+#eval =false don't run code
+#echo =False run code but dont show the code
+#caption ="" (caption for code chunk)
+#library(networkD3)
+#library(stringr) # for working with strings (pattern matching)
+#library(raster)      # classes and functions for raster data
+#library(rgdal)
+
+library(sf)          # classes and functions for vector data
+library(sp)
+library(spData)        # load geographic data
+library(spDataLarge)   # load larger geographic data
+
+
+library(dplyr)
+
+library(stplanr)      # geographic transport data package
+library(mapview)
+library(readxl)
+library(xlsx)
+library(ggplot2)
+
+
+Sys.setenv(CYCLESTREET = "4f8888f9c99f438b")
+Sys.setenv(GRAPHHOPPER='4897ffda-408e-4f6b-8161-21ecce6ae1d1')
+
+
+```
+
+#Import Data
+```{r}
+ct_flow<- read_excel("GEOG506/ct_flow_island.xlsx") #commuting flow
+
+load("Data/origin_ct.Rdata") #origin cT (residential area)
+load("Data/dest_ct.Rdata") #destination CT (industrial, commercial, institutional area)
+load(file="Data/CT.Rdata") #CT Island of Montreal
+
+```
+
+```{r}
+head(ct_flow)
+```
+
+```{r}
+head(Island)
+```
+
+#Flow
+```{r}
+zones_intra = filter(ct_flow, Origin == Destination)
+zones_inter = filter(ct_flow, Origin != Destination)
+
+flow_lines = od2line(zones_inter, origin, dest)
+save(flow_lines,file="Data/flow_lines.Rdata")
+#Ori_specified <- flow_lines[flow_lines$Origin == "4620001.00",]
+#Ori_specified_sf <- st_as_sf(Ori_specified)
+
+od_top100 = flow_lines %>% 
+  st_as_sf()%>%
+  arrange(desc(Total)) %>% 
+  top_n(100, wt = Total)
+
+mapview(MonIsland_CT, alpha.regions = 0.5,layer.name = "Census Tract", col.regions = "grey")
+
+```
+#active map
+```{r}
+flow_lines$Active = flow_lines$Walking+flow_lines$Cycling
+
+flow_lines_active <- st_as_sf(flow_lines)%>%
+  arrange(Active)
+
+active_map <- tm_shape(flow_lines_active) +
+  tm_lines(
+    palette = "plasma", breaks = c(0, 5, 10, 20, 40, 100),
+    lwd = "Total",
+    scale = 9,
+    title.lwd = "Number of trips",
+    alpha = 0.5,
+    col = "Active",
+    title = "Active travel (%)",
+    legend.lwd.show = TRUE
+  ) +
+  tm_layout(
+    legend.bg.alpha = 0.5,
+    legend.bg.color = "white"
+  )
+tmap_save(active_map,filename = "active travel.jpg", dpi = 300)
+```
+
+#All Car Routes
+```{r}
+flow_gcs <- st_transform(st_as_sf(flow_lines), "+proj=longlat +datum=WGS84")
+
+flow_1_14000 <- flow_gcs[1:14000,]
+flow_14001_28000 <- flow_gcs[14001:28000,]
+flow_28001_42000 <- flow_gcs[28001:42000,]
+flow_42001_56000 <- flow_gcs[42001:56000,]
+flow_56001 <- flow_gcs[56001:62762,]
+
+#car_1_14000 = line2route(l = flow_1_14000, "route_graphhopper")
+
+#car_14001_28000 = line2route(l = flow_14001_28000, "route_graphhopper")
+#car_14001_28000$id <- as.character(as.numeric(car_14001_28000$id)+14000)
+
+#save(car_1_14000,file="Data/car_1_14000.Rdata")
+#save(car_14001_28000,file="Data/car_14001_28000.Rdata")
+
+#car_28001_42000 = line2route(l = flow_28001_42000, "route_graphhopper")
+#car_28001_42000$id <- as.character(as.numeric(car_28001_42000$id)+28000)
+#save(car_28001_42000,file="Data/car_28001_42000.Rdata")
+
+
+#car_42001_56000 = line2route(l = flow_42001_56000, "route_graphhopper")
+#car_42001_56000$id <- as.character(as.numeric(car_42001_56000$id)+42000)
+#save(car_42001_56000,file="Data/car_42001_56000.Rdata")
+
+Sys.setenv(GRAPHHOPPER='bcb23aaa-5410-497b-9929-e05dfc417aa3')
+car_56001 = line2route(l = flow_56001, "route_graphhopper")
+car_56001$id <- as.character(as.numeric(car_56001$id)+56000)
+save(car_56001,file="Data/car_56001.Rdata")
+```
+
+#All Cycling Routes
+```{r}
+#cycling_1_14000 = line2route(l = flow_1_14000, route_cyclestreet)
+#save(cycling_1_14000,file="Data/cycling_1_14000.Rdata")
+
+#cycling_14001_28000 = line2route(l = flow_14001_28000, route_cyclestreet)
+#cycling_14001_28000$id <- as.character(as.numeric(cycling_14001_28000$id)+14000)
+#save(cycling_14001_28000,file="Data/cycling_14001_28000.Rdata")
+
+#cycling_28001_42000 = line2route(l = flow_28001_42000, route_cyclestreet)
+#cycling_28001_42000$id <- as.character(as.numeric(cycling_28001_42000$id)+28000)
+#save(cycling_28001_42000,file="Data/cycling_28001_42000.Rdata")
+
+#cycling_42001_56000 = line2route(l = flow_42001_56000, route_cyclestreet)
+#cycling_42001_56000$id <- as.character(as.numeric(cycling_42001_56000$id)+42000)
+#save(cycling_42001_56000,file="Data/cycling_42001_56000.Rdata")
+
+#cycling_56001 = line2route(l = flow_56001, route_cyclestreet)
+#cycling_56001$id <- as.character(as.numeric(cycling_56001$id)+56000)
+#save(cycling_56001,file="Data/cycling_56001.Rdata")
+
+```
+
+
+#route
+```{r}
+top100_gcs <- st_transform(od_top100, "+proj=longlat +datum=WGS84") #transform coordinate system
+car_route = line2route(l = top100_gcs, "route_graphhopper")
+cycling_route = line2route(top100_gcs, route_cyclestreet)
+#cycling_route2 = line2route(l = top100_gcs, "route_graphhopper", vehicle = "bike")
+
+car_node = as(as(Car,"Spatial"),"SpatialPointsDataFrame")
+
+mapview(car_route$geometry,color = "red", alpha = 1,lwd = 1)+
+  mapview(cycling_route$geometry,color = "green")#map.types = "OpenStreetMap")
+
+
+```
+
+#betweeness
+```{r}
+caroute_ln = SpatialLinesNetwork(car_route)
+edge_car = igraph::edge_betweenness(caroute_ln@g)
+#plot(caroute_ln@sl$geometry, lwd = edge / 20)
+
+cycling_ln = SpatialLinesNetwork(cycling_route) 
+edge_cycling = igraph::edge_betweenness(cycling_ln@g)
+
+mapview(cycling_ln@sl$geometry,lwd=edge_cycling / 50,color = "forestgreen", alpha = 0.8)+
+  mapview(caroute_ln@sl$geometry,lwd=edge_car / 50,color ="steelblue", alpha = 0.8)
+```
+#elevation
+```{r}
+#set_key("AIzaSyCppbr4YafOexIuepG6qsSLB-DhwIfr_IA")
+srtm = raster("GEOG506/DEM/srtm_22_03.tif")
+car_route_prj <- st_transform(car_route, projection(srtm))
+try <- car_route_prj[1:2,]
+transect = raster::extract(srtm, try, 
+                           along = TRUE, cellnumbers = TRUE)
+head(transect)
+
+transect_df = purrr::map_dfr(transect, as_data_frame, .id = "ID")
+transect_coords = xyFromCell(srtm, transect_df$cell)
+
+pair_dist = geosphere::distGeo(transect_coords)[-nrow(transect_coords)]
+transect_df$dist = c(0, cumsum(pair_dist)) 
+mapview(pt, zcol = ("elevation"))+
+  mapview(try)
+```
+
+```{r}
+load("Data/car_routes.Rdata")
+load("Data/cycling_routes.Rdata")
+library(foreign)
+flow_lines_sf <- st_as_sf(flow_lines)
+flow_lines_sf$id <- row.names(flow_lines_sf)
+write.dbf(flow_lines_sf, "flow_route.dbf")
+st_write(flow_lines_sf, "flow.shp")
+st_write(cycling, "cycling_route.shp")
+
+```
+
+```{r}
+median(rep(Median$up_tot, Median$Cycling))
+summary(rep(Median$time_ratio, Median$Cycling))
+sum(Median$Cycling)
+
+```
+
+```{r}
+best <- st_read("Best_prj.shp")
+#best_node = as(as(best,"Spatial"),"SpatialPointsDataFrame")
+#best_node <- st_as_sf(best_node)
+#st_write(best_node, "best_node.shp")
+
+best_ln = SpatialLinesNetwork(best)
+edge_best = igraph::edge_betweenness(best_ln@g)
+best <- mapview(best_ln@sl$geometry,lwd=edge_best / 3000,color = "chocolate", alpha = 0.8)
+mapshot(best, file = paste0(getwd(), "/best.png"),
+        remove_controls = c("homeButton", "layersControl"))
+
+worst <- st_read("Worst.shp")
+worst_ln = SpatialLinesNetwork(worst)
+edge_worst = igraph::edge_betweenness(worst_ln@g)
+worst <- mapview(worst_ln@sl$geometry,lwd=edge_worst / 3000,color = "purple", alpha = 0.8)
+mapshot(worst, file = paste0(getwd(), "/worst.png"),
+        remove_controls = c("homeButton", "layersControl"))
+```
+
+```{r}
+car <- st_read("car_route.shp")
+car_ln = SpatialLinesNetwork(car)
+best <- dpselect(car_ln@sl$id<2000)
+car_1 <- car[car$cyc_dist <= 4.6 & car$gain_elev <= 30,]
+save_1 <-car_1 %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)
+save_1_sp <- as(save_1,"Spatial")
+save_1_joined = left_join(Island,save_1_sp@data[,c("CTUID","Saving")], by = "CTUID")
+mapview(save_1_joined,zcol = ("Saving"),alpha = 0.8, legend = TRUE, layer.name="haha")
+```
+```{r}
+
+```
+

@@ -1,0 +1,159 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+    number_sections: true
+    fig_caption: true
+---
+
+# Preparation
+## Load packages
+```{r}
+library(sf)          # classes and functions for vector data
+library(sp)
+library(spData)        # load geographic data
+library(spDataLarge)   # load larger geographic data
+library(dplyr)
+library(stplanr)      # geographic transport data package
+library(mapview)
+library(readxl)
+library(xlsx)
+library(ggplot2)
+```
+
+## Set up API keys
+```{r}
+Sys.setenv(CYCLESTREET = "4f8888f9c99f438b")
+Sys.setenv(GRAPHHOPPER='4897ffda-408e-4f6b-8161-21ecce6ae1d1')
+```
+
+# Import Data
+```{r}
+ct_flow<- read_excel("GEOG506/ct_flow_island.xlsx") #commuting flow
+
+load("Data/origin_ct.Rdata") #origin cT (residential area)
+load("Data/dest_ct.Rdata") #destination CT (industrial, commercial, institutional area)
+load(file="Data/CT.Rdata") #CT Island of Montreal
+```
+
+```{r}
+head(ct_flow)
+```
+
+```{r}
+head(Island)
+```
+
+# Flow
+```{r}
+zones_intra = filter(ct_flow, Origin == Destination)
+zones_inter = filter(ct_flow, Origin != Destination)
+flow_lines = od2line(zones_inter, origin, dest)
+flow_lines
+```
+# Generate Routes
+```{r}
+flow_gcs <- st_transform(st_as_sf(flow_lines), "+proj=longlat +datum=WGS84") #transform coordinate system
+```
+
+```{r, echo=FALSE}
+load("Data/car_routes.Rdata") 
+load("Data/cycling_routes.Rdata")
+```
+
+```{r, eval=FALSE}
+#generate car routes using graphhopper
+#generate bicycle routes using cyclestreet
+Car = line2route(flow_gcs, "route_graphhopper")
+cycling = line2route(flow_gcs, route_cyclestreet)
+```
+
+```{r}
+Car
+```
+
+```{r}
+cycling
+```
+# Emission Saving
+## Potentially Cyclable Trip
+```{r}
+cycling_routes <- as(cycling,"Spatial")
+car_trips = left_join(Car,cycling_routes@data[,c("time","length","id","up_tot")], by = "id")
+car_trips
+```
+
+```{r}
+#calculate time ratio
+car_trips$ratio = car_trips$time.y/60/car_trips$time.x
+car_trips
+```
+
+```{r}
+#scenario 1：cycling distance <=4.6 km, elevation gain <= 30 m
+car_1 <- car_trips[car_trips$length <= 4600 & car_trips$up_tot <= 30,]
+#scenario 2：cycling distance <=4.6 km, elevation gain <= 30 m, ratio <=1.2
+car_2 <- car_trips[car_trips$length <= 4600 & car_trips$up_tot <= 30 & car_trips$ratio <=1.2,]
+```
+## Emission Saving by Origin
+### Scenario 1
+```{r}
+flow_lines@data$id <- row.names(flow_lines@data)
+car_1 <- left_join(car_1,flow_lines@data[,c("Origin","id","Car")], by = "id")
+#calculate emission saving per flow
+car_1$Saving <- (car_1$dist/1000000)*car_1$Car*19
+car_1
+```
+
+```{r}
+save_1 <-car_1 %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)
+save_1_sp <- as(save_1,"Spatial")
+save_1_joined = left_join(Island,save_1_sp@data[,c("CTUID","Saving")], by = "CTUID")
+```
+### Scenario 2
+```{r}
+car_2 <- left_join(car_2,flow_lines@data[,c("Origin","id","Car")], by = "id")
+#calculate emission saving per flow
+car_2$Saving <- (car_2$dist/1000000)*car_2$Car*19
+car_2
+```
+
+```{r}
+save_2 <-car_2 %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)
+save_2_sp <- as(save_2,"Spatial")
+save_2_joined = left_join(Island,save_2_sp@data[,c("CTUID","Saving")], by = "CTUID")
+```
+# Maps
+## Cyclable Route
+### Scenario 1
+```{r, fig.cap="Cyclable Trips (Scenario 1)"}
+car1_ln = SpatialLinesNetwork(car_1)
+edge_best1 = igraph::edge_betweenness(car1_ln@g)
+mv1 = mapview(car1_ln@sl$geometry,lwd=edge_best1 / 3000,color = "chocolate", alpha = 0.8)
+mv1@map
+```
+### Scenario 2
+```{r, fig.cap="Cyclable Trips (Scenario 2)"}
+car2_ln = SpatialLinesNetwork(car_2)
+edge_best2 = igraph::edge_betweenness(car2_ln@g)
+mv2 = mapview(car2_ln@sl$geometry,lwd=edge_best2 / 3000,color = "purple", alpha = 0.8)
+mv2@map
+```
+## Emission Saving
+### Scenario 1
+```{r, fig.cap="Emission Savings Per Day (Scenario 1)"}
+mv3 = mapview(save_1_joined,zcol = ("Saving"),alpha = 0.8, legend = TRUE, layer.name="Emission Savings (kg)")
+mv3@map
+```
+### Scenario 2
+```{r, fig.cap="Emission Savings Per Day (Scenario 2)"}
+mv4 = mapview(save_2_joined,zcol = ("Saving"),alpha = 0.8, legend = TRUE, layer.name="Emission Savings (kg)")
+mv4@map
+```

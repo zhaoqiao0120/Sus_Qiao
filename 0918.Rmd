@@ -54,18 +54,19 @@ library(sf)
 ```
 #Load Census Data "TractPolygonCompressed.json"
 ```{r}
-#CT <- geojsonio::geojson_read("Data/TractPolygonsCompressed.json", what="sp")
+CT <- geojsonio::geojson_read("Data/TractPolygonsCompressed.json", what="sp")
 #head(CT)
 
 # subselect Montreal Area
 #CT <- CT[CT@data$CMANAME == "Montreal",]
-#save(CT, file= "Data/CT.Rdata")
+save(CT, file= "Data/CT.Rdata")
 ```
 
 ```{r}
 zones_data <- geojsonio::geojson_read("Data/TractTractLinesCompressed.json", what="sp")
 save(zones_data,file="Data/zones_data.Rdata")
 zones_data[1:10,]
+CT[1:10,]
 ```
 
 ```{r}
@@ -88,12 +89,19 @@ dater["testgroup/testset2"] <- matrix(1:33,nrow=3)
 
 ```{r}
 dater['testgroup']
-h5unlink(dater,"testgroup/testset") #delete dataframe
+h5unlink(dater,"testgroup/CT") #delete dataframe
 ```
 
 ```{r}
-load("Data/CT.Rdata")
-names(CT)
+CTdata <- load("Data/CT.Rdata")
+CT[1:10,]
+zones <- load("Data/zones_data.Rdata")
+zones_data[1:10,]
+dater["testgroup/CT"] <- CTdata
+dater["testgroup/zones"] <- zones
+dater["testgroup/CT2"] <- CT
 desire_rail = top_n(desire_lines, n = 3, wt = train)
+
+class(zones_data)
 ```
 

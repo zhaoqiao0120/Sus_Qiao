@@ -1,0 +1,75 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(networkD3)
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(sp)
+#library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap) 
+library(mapview)
+library(readxl)
+library(googleway)
+library(ggplot2)
+library(rgdal)
+library(xlsx)
+```
+
+```{r}
+car <- st_read("car_route.shp")
+
+car_1 <- car[car$cyc_dist <= 4.6 & car$gain_elev <= 30,]
+save_1 <-car_1 %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)
+save_1_sp <- as(save_1,"Spatial")
+save_1_joined = left_join(Island,save_1_sp@data[,c("CTUID","Saving")], by = "CTUID")
+pal = mapviewPalette("mapviewVectorColors")
+mapview(save_1_joined,zcol = ("Saving"),alpha = 0.8, legend = TRUE, layer.name="haha",col.regions = pal)
+
+save(save_1_joined,file="Data/scenario1.Rdata")
+```
+
+```{r}
+car_2 <- car[car$cyc_dist <= 4.6 & car$gain_elev <= 30 & car$time_ratio <=1.2,]
+save_2 <-car_2 %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)
+save_2_sp <- as(save_2,"Spatial")
+save_2_joined = left_join(Island,save_2_sp@data[,c("CTUID","Saving")], by = "CTUID")
+save(save_2_joined,file="Data/scenario2.Rdata")
+```
+```{r}
+car_2_ln = SpatialLinesNetwork(car_2)
+save(car_2_ln,file="Data/Car2.Rdata")
+```
+
+```{r}
+load(file="Data/scenario1.Rdata")
+quantile(save_1_joined[which(!is.na(save_1_joined$Saving)),]$Saving)
+save_1_joined[which(!is.na(save_1_joined$Saving)),]
+```
+```{r}
+ct_flow<- read_excel("GEOG506/ct_flow_island.xlsx")
+flow = ct_flow %>% 
+  group_by(Origin) %>% 
+  summarize_if(is.numeric, sum) %>% 
+  dplyr::rename(CTUID = Origin)a
+
+flow$Active = flow$Walking+flow$Cycling
+load(file="Data/CT.Rdata")
+CT_split <- Island
+save(CT_split, file="Data/split.Rdata")
+```
+

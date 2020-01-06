@@ -1,0 +1,117 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(networkD3)
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap) 
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap)
+library(mapview)
+library(readxl)
+
+Sys.setenv(CYCLESTREET = "4f8888f9c99f438b")
+```
+
+```{r}
+ct_flow_island <- read_excel("C:/Users/Qiao/Desktop/ct_flow_island.xlsx")
+load("Data/Island_ct.Rdata")
+head(MonIsland_CT)
+```
+
+```{r}
+zones_origin= ct_flow_island %>%
+  group_by(Origin) %>%
+  summarize_if(is.numeric,sum) %>%
+  dplyr::rename(CTUID = Origin, Tot_Ori = Total)
+
+zones_dest= ct_flow_island %>%
+  group_by(Destination) %>%
+  summarize_if(is.numeric,sum) %>%
+  dplyr::rename(CTUID = Destination, Tot_Des = Total)
+
+MonIsland_CT@data = left_join(MonIsland_CT@data,zones_origin, by = "CTUID")
+MonIsland_CT@data = left_join(MonIsland_CT@data, zones_dest, by = "CTUID")
+
+Island <- st_as_sf(MonIsland_CT)
+
+tmap_mode("view") #plot
+tm_shape(Island)+
+  tm_polygons("Tot_Ori",style = "quantile", n = 5,alpha = 0.7)
+
+mapview(Island, zcol=("Tot_Ori"))
+```
+#Flow
+```{r}
+zones_intra = filter(ct_flow_island, Origin == Destination)
+zones_inter = filter(ct_flow_island, Origin != Destination)
+
+desire_lines = od2line(zones_inter, Island)
+
+Ori_specified <- desire_lines[desire_lines$Origin == "4620001.00",]
+#od_top100 = desire_lines %>% 
+  #arrange(desc(Total)) %>% 
+  #top_n(100, wt = Total)
+
+mapview(Island,map.types = "OpenStreetMap",alpha.regions = 0.5, aplha = 1,layer.name = "Census Tract", col.regions = "grey")+
+  mapview(Ori_specified,map.types = "OpenStreetMap", zcol=("Total"), layer.name = "Commuting Trip", color = viridisLite::plasma)
+```
+
+
+#Route
+```{r}
+desire_lines$distance = as.numeric(st_length(desire_lines))
+
+desirelines.gcs <- st_transform(desire_lines, "+proj=longlat +datum=WGS84") #transport coordinate system
+
+desire_carshort2 = dplyr::filter(desirelines.gcs, Car> 100 & distance < 5000)
+route_carshort = line2route(desire_carshort, route_osrm)
+cycling_carshort = line2route(desire_carshort2, route_cyclestreet)
+cycling_carshort2 = cycling_carshort[is.na(cycling_carshort$error),]
+
+desire_carshort$geom_car = st_geometry(route_carshort)
+desire_carshort2$geom_car = st_geometry(route_carshort)
+desire_carshort2$geom_cycle = st_geometry(cycling_carshort)
+desire_carshort2 <- desire_carshort2[(desire_carshort2$geometry != desire_carshort2$geom_cycle),]
+  
+new <- desire_carshort[,-9]
+
+mapview(desire_carshort2$geom_cycle,color = "green", map.types = "OpenStreetMap")+
+  mapview(desire_carshort2$geom_car,map.types = "OpenStreetMap")
+```
+
+#betweenness
+```{r}
+caroute_ln = SpatialLinesNetwork(route_carshort)
+edge_car = igraph::edge_betweenness(caroute_ln@g)
+#plot(caroute_ln@sl$geometry, lwd = edge / 20)
+
+cycling_ln = SpatialLinesNetwork(cycling_carshort2) 
+
+edge_cycling = igraph::edge_betweenness(cycling_ln@g)
+
+
+mapview(cycling_ln@sl$geometry,lwd=edge_cycling / 20,color = "green", map.types = "OpenStreetMap")+
+  mapview(caroute_ln@sl$geometry,lwd=edge_car / 20,map.types = "OpenStreetMap")
+
+
+```
+

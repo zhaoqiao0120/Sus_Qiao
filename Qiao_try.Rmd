@@ -1,0 +1,99 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+```{r}
+library(networkD3)
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap) 
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap)
+library(mapview)
+library(readxl)
+ct_flow_island <- read_excel("C:/Users/Qiao/Desktop/ct_flow_island.xlsx")
+View(ct_flow_island)
+head(ct_flow_island)
+```
+
+```{r}
+load("Data/ct_flow_island.Rdata")
+load("Data/CT.Rdata")
+load("Data/Montreal.Rdata")
+load("Data/Island.Rdata")
+load("Data/Montreal_CT.Rdata")
+head(MonIsland_CT)
+shape <- shapefile("CMA/Montreal_CMA.shp")
+save(shape,file="Data/Montreal_ct.Rdata")
+load("Data/Montreal_ct.Rdata")
+load("Data/Island_ct.Rdata")
+
+#Montreal_CT@data = left_join(Montreal_CT@data,Island_ct, by = "CTUID")
+#MonIsland_CT <- Montreal_CT[!is.na(Montreal_CT@data$Island),]
+
+
+```
+
+#zone level
+```{r}
+zones_origin= ct_flow_island %>%
+  group_by(Origin) %>%
+  summarize_if(is.numeric,sum) %>%
+  dplyr::rename(CTUID = Origin, Tot_Ori = Total)
+
+zones_dest= ct_flow_island %>%
+  group_by(Destination) %>%
+  summarize_if(is.numeric,sum) %>%
+  dplyr::rename(CTUID = Destination,Tot_Des = Total)
+
+#Island1@data = left_join(Island1@data,zones_origin, by = "CTUID")
+#Island1@data = left_join(Island1@data, zones_dest, by = "CTUID")
+
+#Island <- st_as_sf(Island1)
+MonIsland_CT@data = left_join(MonIsland_CT@data,zones_origin, by = "CTUID")
+MonIsland_CT@data = left_join(MonIsland_CT@data, zones_dest, by = "CTUID")
+
+Island <- st_as_sf(MonIsland_CT)
+
+tmap_mode("view")
+tm_shape(Island)+
+  tm_polygons(c("Tot_Ori","Tot_Des"))
+
+mapview(Island, zcol=("Tot_Ori"))
+```
+
+```{r}
+zones_intra = filter(ct_flow_island, Origin == Destination)
+zones_inter = filter(ct_flow_island, Origin != Destination)
+
+desire_lines = od2line(zones_inter, Island)
+qtm(od_top100, lines.lwd = "M_Tot")
+
+Ori_specified <- desire_lines[desire_lines$Origin == "4620001.00",]
+#od_top100 = desire_lines %>% 
+  #arrange(desc(Total)) %>% 
+  #top_n(100, wt = Total)
+
+tmap_mode("view")
+
+tm_shape(Ori_specified)+
+  tm_lines("Total",lwd=1.5)
+
+mapview(Ori_specified, zcol=("Total"))
+```
+

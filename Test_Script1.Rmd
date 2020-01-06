@@ -28,6 +28,7 @@ library(tmap)
 data(bristol_zones)
 names(bristol_zones)
 data(bristol_od) #travel data
+bristol_od[1:10,]
 names(bristol_od)
 
 zones_attr = bristol_od %>% 
@@ -55,19 +56,29 @@ od_top5 = bristol_od %>%
 
 bristol_od$Active = (bristol_od$bicycle + bristol_od$foot) / bristol_od$all * 100
 
-od_intra = filter(bristol_od, o == d) #travel within the same zone
-od_inter = filter(bristol_od, o != d) #between zones
-desire_lines = od2line(od_inter, zones_od)
+od_intra1 = filter(bristol_od, o == d) #travel within the same zone
+od_inter1 = filter(bristol_od, o != d) #between zones
+desire_lines1 = od2line(od_inter1, zones_od)
 #> Creating centroids representing desire line start and end points.
-qtm(desire_lines, lines.lwd = "all")
+qtm(desire_lines1, lines.lwd = "all")
 ```
 # 12.5 Routes
 ```{r}
-desire_lines$distance = as.numeric(st_length(desire_lines))
-desire_carshort = dplyr::filter(desire_lines, car_driver > 300 & distance < 5000)
+desire_lines1$distance = as.numeric(st_length(desire_lines1))
+desire_carshort1 = dplyr::filter(desire_lines1, car_driver > 300 & distance < 5000)
 
-route_carshort = line2route(desire_carshort, route_fun = route_osrm)
-desire_carshort$geom_car = st_geometry(route_carshort)
+route_carshort1 = line2route(desire_carshort1, route_fun = route_osrm)
+desire_carshort$geom_car = st_geometry(route_carshort1)
+mytoken <- readLines("~/Dropbox/dotfiles/cyclestreets-api-key-rl") 
+Sys.setenv(CYCLESTREET = "4f8888f9c99f438b")
+
+cycle <-  line2route(desire_carshort1, route_fun = route_cyclestreet)
+
+from <- c(-1.55, 53.80) # geo_code("leeds")
+to <- c(-1.76, 53.80) # geo_code("bradford uk")
+r <- route_osrm(from, to)
+plot(r)
+
 ```
 # 12.6 Nodes
 ```{r}

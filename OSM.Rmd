@@ -1,0 +1,60 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(httr)
+library(stplanr)
+library(sf)
+bb <- osmdata::getbb ("montreal ca")
+montreal_road <- dodgr_streetnet (bb)
+montreal_road <- montreal_road[c("osm_id","highway", "name", "lanes", "maxspeed")]
+montreal_motor <- weight_streetnet (montreal_road, wt_profile = "motorcar")
+library(stats)
+library(jqr)
+```
+
+```{r}
+srtm = raster("GEOG506/DEM/srtm_22_03.tif")
+vertices <- dodgr_vertices(montreal_motor)
+montreal_motor_vt <- st_as_sf(x = montreal_motor_vt, 
+                        coords = c("x", "y"),
+                        crs = "+proj=longlat +datum=WGS84")
+montreal_motor_vt$elevation = raster::extract(srtm, montreal_motor_vt)
+from <- montreal_motor_vt[c("id","elevation")]
+names(from)[1] <- "from_id"
+
+to <- montreal_motor_vt[c("id","elevation")]
+names(to)[1] <- "to_id"
+```
+
+```{r}
+montreal_motor <- left_join(montreal_motor,from,by="from_id")
+
+montreal_motor <- left_join(montreal_motor,to,by="to_id")
+montreal_motor$grade <- abs(montreal_motor$elevation.y - montreal_motor$elevation.x)/montreal_motor$d
+
+montreal_motor <- select(montreal_motor,-c(elevation.x,geometry.x,elevation.y,geometry.y))
+
+```
+
+```{r}
+vert <- vertices[1:2,]
+vert$x[1]
+nrow(vert)
+route <- cycling[1,]
+routesln <- SpatialLinesDataFrame(route)
+sln2points(SpatialLinesNetwork(route)@g)
+
+split <- split
+for (i in 1:nrow(vert)) {
+  url <- paste("http://geogratis.gc.ca/services/elevation/cdem/altitude?lat=", as.character(vert$y[i]), "&lon=", as.character(vert$x[i]),sep = "")
+  a <- fromJSON(url)
+  vert$elevation[i] <- a$altitude
+}
+
+```
+

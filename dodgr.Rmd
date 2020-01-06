@@ -1,0 +1,63 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(dodgr)
+```
+#road network
+```{r}
+net <- osmdata::getbb ("montreal ca")#bounding box
+
+net <- dodgr_streetnet (net)
+cyc_net <- weight_streetnet (net, wt_profile = "bicycle")
+#write_dodgr_wt_profile(file = "weight.json")
+cyc_net2 <- weight_streetnet (net, wt_profile = "bicycle", wt_profile_file = "weight.json")
+
+vt <- dodgr_vertices (cyc_net)
+head(vt)
+
+
+```
+#weighting profiles
+```{r}
+wp <- weighting_profiles$penalties
+from <- sample (cyc_net$from_id, size = 10)
+to <- sample (cyc_net$to_id, size = 5)
+dp <- dodgr_paths (cyc_net, from = from, to = to)
+
+
+```
+
+#Graph contraction
+```{r}
+grc <- dodgr_contract_graph (cyc_net)
+```
+
+#shortest path
+```{r}
+c(-73.5121942539806, , 45.6072860586539, 45.6084665711066)
+from = 
+```
+
+#route_dodgr
+```{r}
+from <- c(-73.5121942539806, 45.6072860586539) 
+to <- c(-73.5164392625973, 45.6084665711066) 
+
+# next 4 lines were used to generate `stplanr::osm_net_example`
+pts
+
+osm_net_example <- net[c("highway", "name", "lanes", "maxspeed")]
+net_try <- st_cast(try, "MULTILINESTRING")
+
+plot(osm_net_example)
+r <- route_dodgr(from, to, net = osm_net_example)
+plot(osm_net_example$geometry)
+plot(r$geometry, add = TRUE, col = "red", lwd = 5)
+
+osmdata::osmdata
+```
+

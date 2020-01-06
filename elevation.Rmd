@@ -1,0 +1,68 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+library(networkD3)
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(sp)
+#library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap) 
+library(mapview)
+library(readxl)
+library(googleway)
+library(ggplot2)
+library(rgdal)
+library(dodgr)
+
+load("/")
+```
+
+#line
+```{r}
+srtm = raster("GEOG506/DEM/srtm_22_03.tif")
+car_route_prj <- st_transform(car_route, projection(srtm))
+try <- car_route_prj[1:2,]
+transect = raster::extract(srtm, try, 
+                           along = TRUE, cellnumbers = TRUE)
+head(transect)
+
+transect_df = purrr::map_dfr(transect, as_data_frame, .id = "ID")
+transect_coords = xyFromCell(srtm, transect_df$cell)
+
+pair_dist = geosphere::distGeo(transect_coords)[-nrow(transect_coords)]
+transect_df$dist = c(0, cumsum(pair_dist)) 
+```
+
+#point
+```{r}
+pt <- st_cast(try, "POINT")
+pt$elevation = raster::extract(srtm, pt)
+
+```
+```{r}
+car_net <- weight_streetnet (net, wt_profile = "motorcar")
+car_vt <- dodgr_vertices(car_net)
+car_vt <- st_as_sf(x = car_vt, 
+                        coords = c("x", "y"),
+                        crs = "+proj=longlat +datum=WGS84")
+car_vt$elevation = raster::extract(srtm, car_vt)
+tmap_mode("view")
+tm_shape(car_vt)+
+  tm_dots(col = "elevation", palette = "plasma")
+
+car_vt$from_id <- car_vt$id
+car_vt$to_id <- car_vt$id
+
+car_net <- left_join(car_net,car_vt,by = "from_id")
+car_net <- left_join(car_net,car_vt,by = "to_id")
+```
+

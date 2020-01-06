@@ -1,0 +1,72 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(networkD3)
+library(sf)          # classes and functions for vector data
+library(raster)      # classes and functions for raster data
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap) 
+library(spData)        # load geographic data
+library(dplyr)
+library(stringr) # for working with strings (pattern matching)
+library(spDataLarge)   # load larger geographic data
+library(stplanr)      # geographic transport data package
+library(tmap)     
+library(webshot)
+webshot::install_phantomjs()
+```
+
+
+```{r}
+nodes <- read.csv(file="c:/Users/Qiao/Desktop/Sus_Qiao/Data/nodes.csv")
+colnames(nodes)<- c("name","ID","node_group")
+rownames(nodes) <- seq(1,length(nodes[,1]))
+
+links <- read.csv(file="c:/Users/Qiao/Desktop/Sus_Qiao/Data/links.csv")
+colnames(links) <- c("source","target","value","group_type")
+rownames(links) <- seq(1,length(links[,1]))
+
+```
+
+```{r}
+flowchart <- sankeyNetwork(Links = links, Nodes = nodes, Source = "source", #map: workers CT (total modes); greenhouse gas emission per CT or per route; active transportation rate per CT
+            Target = "target", Value = "value", NodeID = "name",
+             fontSize = 14, nodeWidth = 10, LinkGroup = "group_type",  NodeGroup = NULL,
+           colourScale = JS("d3.scaleOrdinal(d3.schemeCategory20);"), sinksRight = FALSE, iterations =18, height = 800, width=1800, nodePadding = 10)
+
+saveNetwork(flowchart, "master_plan.html")
+webshot("master_plan.html", "Master_plan.png")
+```
+#Load Data CT
+```{r}
+load("Data/CT.Rdata")
+names(CT)
+```
+
+#Load Data zones_data
+```{r}
+load("Data/zones_data.Rdata")
+names(zones_data)
+```
+
+
+#Transport Zones
+```{r}
+zones_data <- as.data.frame(zones_data)
+zones_attr = zones_data %>%
+  group_by(Origin) %>%
+  summarize_if(is.numeric,sum) %>%
+  dplyr::rename(CTUID = Origin)
+
+CT@data = data.frame(CT@data, zones_attr[match(CT@data[,"CTUID"], zones_attr[,"CTUID"]),])
+
+class(zones_attr)
+```
+
