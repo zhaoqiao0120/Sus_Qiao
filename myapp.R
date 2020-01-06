@@ -41,7 +41,7 @@ if (interactive()){
                                                fluidRow(
                                                  column(3,
                                                         radioButtons("radio1",label = "",
-                                                                     choices = list("Scenario 1" = 1,"Scenario 2" = 2, "Play" = 3),selected = 3))
+                                                                     choices = list("Scenario 1" = 1,"Scenario 2" = 2, "Play" = 3, "Default" = 4),selected = 4))
                                                ),
                                                
                                                fluidRow(
@@ -105,9 +105,6 @@ if (interactive()){
       m@map
     })
     
-    #best <- car[car$time_ratio <=input$ratio & car$cyc_dist <= input$dist & car$gain_elev <= input$elev,]
-    #best_ln = SpatialLinesNetwork(best)
-    #edge_best = igraph::edge_betweenness(best_ln@g)
     observe({
       sco <- input$radio1
       if (sco == 1){
@@ -167,7 +164,7 @@ if (interactive()){
         })}
       
       
-      else{
+      else if (sco ==3){
         enable("elev")
         enable("dist")
         enable("ratio")
@@ -175,8 +172,35 @@ if (interactive()){
         enable("elev2")
         enable("dist2")
         enable("ratio2")
+        
+        output$map1 <- renderLeaflet({
+          dis1 <- (input$dist)*1000
+          car1 <- car[car$dist <= dis1 & car$gain_elev <= input$elev & car$time_ratio <=input$ratio,]
+          car1_ln = SpatialLinesNetwork(car1)
+          edge1 = igraph::edge_betweenness(car1_ln@g)
+          m <- mapview(car1_ln@sl$geometry,lwd=edge1 / 3000,color = "chocolate", alpha = 0.8, layer.name="Cycable Trip")
+          m@map
+        })
+        output$map2 <- renderLeaflet({
+          dis2 <- (input$dist2)*1000
+          car2 <- car[car$dist <= dis2 & car$gain_elev <= input$elev2 & car$time_ratio <=input$ratio2,]
+          car2_ln = SpatialLinesNetwork(car2)
+          edge2 = igraph::edge_betweenness(car2_ln@g)
+          m <- mapview(car2_ln@sl$geometry,lwd=edge2 / 3000,color = "purple", alpha = 0.8, layer.name="Cycable Trip")
+          m@map
+        })
+       
+        
       }
-      
+      else {
+        disable("elev")
+        disable("dist")
+        disable("ratio")
+        
+        disable("elev2")
+        disable("dist2")
+        disable("ratio2")
+      }
     })
     
   
