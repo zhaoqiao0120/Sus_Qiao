@@ -34,9 +34,6 @@ library(xlsx)
 library(ggplot2)
 
 
-Sys.setenv(CYCLESTREET = "4f8888f9c99f438b")
-Sys.setenv(GRAPHHOPPER='4897ffda-408e-4f6b-8161-21ecce6ae1d1')
-
 
 ```
 
